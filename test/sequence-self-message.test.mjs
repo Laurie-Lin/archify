@@ -204,6 +204,24 @@ test('abutting loop spans still need room for the next label', t => {
   ]), 'sequence/self-message-overlap');
 });
 
+test('a loop spacing repair is withheld when either horizontal leg would follow a segment border', t => {
+  for (const border of [270, 312]) {
+    const doc = sequence([
+      { id: 'first', from: 'left', to: 'left', y: 200, label: 'refresh' },
+      { id: 'second', from: 'left', to: 'left', y: 220, label: 'retry' },
+    ], { meta: { viewBox: [1000, 680] } });
+    doc.segments = [{ from: border, to: 500, label: 'Phase' }];
+    const diagnostic = failure(t, doc, 'sequence/self-message-overlap');
+    assert.deepEqual(diagnostic.supportedFixes, [], 'do not advertise a move onto a phase border');
+    // The suggested spacing clears the earlier loop but would put either the
+    // outgoing or return leg on this border. A further authored move can fit.
+    doc.messages[1].y = diagnostic.evidence.requiredY;
+    failure(t, doc, 'composition/container-border-run');
+    doc.messages[1].y = 340;
+    render(t, doc);
+  }
+});
+
 test('a simultaneous message on the opposite side of a loop remains valid', t => {
   render(t, sequence([
     { from: 'middle', to: 'middle', y: 200, label: 'refresh' },

@@ -549,6 +549,13 @@ function messageFitsAt(messageIndex, y) {
   // canvas must still fit the suggested position without a second repair.
   if (sequence.meta?.viewBox && y > messageMaximumY(messages[messageIndex])) return false;
   const moved = { ...messages[messageIndex], y };
+  // Keep both horizontal legs clear of phase borders, as validation requires.
+  const arrowYs = [moved.y, messageBottom(moved)];
+  if (asArray(sequence.segments).some((segment) =>
+    [segment.from, segment.to].some((border) =>
+      arrowYs.some((arrowY) => Math.abs(border - arrowY) < 4)
+    )
+  )) return false;
   const [left, right] = messageSpan(moved);
   if (sequence.meta?.viewBox && noteLayout(moved)?.bottom > layout.lifelineBottom + 20) return false;
   const movedRects = [messageLabelBox(moved), messageRouteBox(moved), noteRect(moved)].filter(Boolean);
