@@ -48,7 +48,7 @@ function route(html, id) {
 }
 
 function note(html) {
-  const match = html.match(/<text data-detail="fine" x="([\d.]+)" y="([\d.]+)" class="[^"]+" font-size="7"( text-anchor="end")?>([\s\S]*?)<\/text>/);
+  const match = html.match(/<text data-detail="context" x="([\d.]+)" y="([\d.]+)" class="[^"]+" font-size="7"( text-anchor="end")?>([\s\S]*?)<\/text>/);
   assert.ok(match, 'self-call note is rendered');
   const spans = [...match[4].matchAll(/<tspan[^>]*>([^<]*)<\/tspan>/g)];
   return { x: Number(match[1]), y: Number(match[2]), anchor: match[3] ? 'end' : 'start', lines: spans.length ? spans.map(span => span[1]) : [match[4]] };
@@ -150,11 +150,14 @@ test('self-call label fitting uses the active quality profile', t => {
   assert.ok(diagnostic.evidence.outerX > diagnostic.evidence.boundaryX);
 });
 
-test('self-call notes on either side wrap inside their lane and preserve every word', t => {
+test('self-call notes on either side wrap, preserve every word and clear phase borders', t => {
   for (const owner of ['left', 'right']) {
-    const html = render(t, sequence([{ id: 'loop', from: owner, to: owner, y: 200, label: 'refresh', note: LONG_NOTE }], {
+    const doc = sequence([{ id: 'loop', from: owner, to: owner, y: 200, label: 'refresh', note: LONG_NOTE }], {
       meta: { viewBox: [1000, 680] },
-    }));
+    });
+    doc.segments = [{ from: 150, to: 260, label: 'Phase' }];
+    const html = render(t, doc);
+    assert.match(html, /data-detail="context" data-graph-role="message-note-background"/, 'phase border is masked behind the note');
     const lanes = [...html.matchAll(/<path d="M ([\d.]+) 142 L \1 [\d.]+" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"\/>/g)].map(match => Number(match[1]));
     const ownNote = note(html);
     assert.ok(ownNote.lines.length > 1);
